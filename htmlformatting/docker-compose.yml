@@ -1,0 +1,17 @@
+version: '3.6'  
+services:  
+  app:
+    build:
+      context: .
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+    ports:
+      - "8000:8000"
+  redis:
+    image: python
+    volumes:
+      - redis_data:/data
+volumes:  
+  redis_data:
