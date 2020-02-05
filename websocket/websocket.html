@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+    <input type="text" name="text" id="text">
+</body>
+<script>
+    socket = new WebSocket('ws://localhost:8000/socket');
+    textbox = document.getElementById('text');
+    socket.onmessage = function (event) {
+        console.log(event.data);
+
+        textbox.value = 'Cpu percentage: ' + event.data + '%';
+    }
+</script>
+</html>
