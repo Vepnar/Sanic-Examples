@@ -1,0 +1,25 @@
+version: '3.6'  
+services:  
+  app:
+    build:
+      context: .
+    depends_on:
+      - mongo
+    environment:
+      - CB_SETTINGS=settings.cfg
+      - CB_MONGO_URI=mongodb://mongo:27017/data
+    ports:
+      - "8000:8000"
+    image: python
+    volumes:
+      - redis_data:/data
+  mongo:
+    image: mongo
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/null
+    ports:
+        - 27017:27017
+    command: mongod --logpath=/dev/null # --quiet
+volumes:  
+  redis_data:

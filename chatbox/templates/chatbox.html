@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block head %}
+<style>
+html, body {
+  height: 100%;
+}
+</style>
+{% endblock %}
+{% block body %}
+<div class="input-group mb-3 fixed-bottom container bg-light">
+    <input type="text" class="form-control" placeholder="Message" id="message">
+    <div class="input-group-append">
+        <button class="btn btn-success" type="submit" onclick="send_message()">Send</button>
+    </div>
+</div>
+<div class="container" style="margin-top:80px;margin-bottom:80px;">
+    {% for message in messages %}
+    <div id="messages">
+        <div class="media-body">
+            <h4>{{message.sender}} <small><i>Posted on {{message.posted.strftime('%d %B %H:%M')}}</i></small></h4>
+            <p>{{message.message}}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+<script>
+    send_socket = new WebSocket('ws://localhost:8000/sendsocket');
+    textbox = document.getElementById('message');
+    function ask_update() {
+        let message = {
+            type: 'update'
+        }
+        send_socket.send(JSON.stringify(message));
+    }
+    function send_message() {
+        let message = {
+            type: 'msg',
+            msg: textbox.value
+        }
+        send_socket.send(JSON.stringify(message));
+        textbox.value = '';
+    }
+    send_socket.onmessage = function (event) {
+        let data = JSON.parse(event.data);
+        if(data.length ===0) return;
+        for (let i=0; i<data.length; i++){
+            document.getElementById("messages").innerHTML +=
+            `<div id="messages"><div class="media-body"><h4>${data[i].sender} <small><i>Posted on ${data[i].posted}</i></small></h4>
+            <p>${data[i].message}</p>
+        </div>`;
+        }
+        window.scrollTo(0,document.body.scrollHeight);
+    }
+    setInterval(ask_update, 1000)
+
+</script>
+{% endblock %}
