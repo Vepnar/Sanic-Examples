@@ -6,8 +6,8 @@ services:
     depends_on:
       - mongo
     environment:
-      - CB_SETTINGS=settings.cfg
       - CB_MONGO_URI=mongodb://mongo:27017/data
+      - CB_REQUEST_MAX_SIZE=1000000
     ports:
       - "8000:8000"
     image: python

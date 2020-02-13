@@ -49,6 +49,18 @@ class SessionHandler:
         app.request_middleware.appendleft(self.open_sessions)
         app.response_middleware.append(self.save_sessions)
 
+    def _update_session(self,data: dict, sid: str):
+        """Update existing session and add new information
+        
+        Args: 
+            data: (dict) Infomation that should be stored in the database
+            sid: (str) Session id where the data should be stored on
+        """
+
+        session = SessionModel.objects(sid=sid)[0] 
+        session.session_data = data
+        session.save()      
+
     async def open_sessions(self, request) -> None:
         """Receive session infomration or set new information"""
         sid, data = request.cookies.get(self.session_name), {}
@@ -66,11 +78,18 @@ class SessionHandler:
             
         session_data = request[self.session_name]
 
-        if '_sid' in request[self.session_name]:
-            self._destroy_session(request[self.session_name]['_sid'])
-            del session_data['_sid']
-            if not len(request[self.session_name].keys()):
+        if '_sid' in session_data:
+            sid = session_data['_sid']
+            if len(session_data.keys()) == 1:
+                
+                del session_data['_sid']
+                self._destroy_session(sid)
                 self._destroy_cookie(response)
+                return
+            else:
+                del session_data['_sid']
+                self._update_session(session_data, sid)
+                self._create_cookie(response, sid)
                 return
 
         sid = self._create_session(session_data)
