@@ -1,0 +1,13 @@
+{% extends "base.html" %} {% block body %}
+<div class="container">
+    <div class="jumbotron">
+        <h1>Error {{error_code}}</h1>
+        <p>
+            An error occurred! This code could help you solve your issue. But you probably have no idea what is happend. so do we!
+        </p>
+        {% if error_message %}
+        <code>{{error_message}}</code> {% endif %}
+    </div>
+
+</div>
+{% endblock %}

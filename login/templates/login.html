@@ -1,0 +1,33 @@
+{% extends "base.html" %} {% block body %}
+<div class="container">
+    <div class="row flex-column-reverse flex-lg-row mt-4">
+        <div class="col-md-6 p-3 mt-2">
+            <h2>Example</h2>
+            <div class="h-divider"></div>
+            <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor
+                in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+            </p>
+        </div>
+        <div class="p-3 mt-2 transparent-background rounded col-md-6">
+            <h2>Login</h2>
+            <div class="h-divider"></div>
+            <form action="/action_page.php" class="">
+                <div class="form-group">
+                    <label for="uname">Email:</label>
+                    <input type="text" class="form-control" id="uname" name="uname" required>
+                    <div class="invalid-feedback">Please fill out this field.</div>
+                </div>
+                <div class="form-group">
+                    <label for="pwd">Password:</label>
+                    <input type="password" class="form-control" id="pwd" name="pwd" required>
+                    <div class="invalid-feedback">Please fill out this field.</div>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+            <div class="h-divider mt-3"></div>
+            <p>No account? press <a href="/users/register">here</a> to register</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
