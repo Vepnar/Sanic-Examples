@@ -12,33 +12,57 @@
         <div class="p-3 mt-2 transparent-background rounded col-md-6">
             <h2>Register</h2>
             <div class="h-divider"></div>
-            <form action="/action_page.php" class="">
+            <form method="POST" class="needs-validation">
                 <div class="form-group">
                     <label for="uname">Email:</label>
-                    <input type="text" class="form-control" id="uname" name="uname" required>
+                    <input type="email" class="form-control" id="email" name="email" required value="{{email}}">
                     <div class="invalid-feedback">Please fill out this field.</div>
                 </div>
                 <div class="form-group">
                     <label for="pwd">Password:</label>
-                    <input type="password" class="form-control" id="pwd2" name="pwd2" required>
+                    <input type="password" class="form-control" id="pwd-1" name="pwd-1" required>
                     <div class="invalid-feedback">Please fill out this field.</div>
                 </div>
                 <div class="form-group">
                     <label for="pwd">Repeat password:</label>
-                    <input type="password" class="form-control" id="pwd2" name="pwd2" required>
+                    <input type="password" class="form-control" id="pwd-2" name="pwd-2" required>
                     <div class="invalid-feedback">Please fill out this field.</div>
                 </div>
                 <div class="form-group form-check">
                     <label class="form-check-label">
-                        <input class="form-check-input" type="checkbox" name="remember" required> I agree on we selling your data.
+                        <input class="form-check-input" type="checkbox" name="accept" required> I agree on selling my body to our company
                         <div class="invalid-feedback">Check this checkbox to continue.</div>
                     </label>
                 </div>
                 <button type="submit" class="btn btn-primary">Register</button>
+                {% if error_message %}
+                <strong class="text-danger">{{error_message}}</strong>
+                {% endif %}
             </form>
+           
             <div class="h-divider mt-3"></div>
             <p>Already have a account? press <a href="/users/login">here</a> to login</p>
         </div>
     </div>
 </div>
+<script>
+    // Disable form submissions if there are invalid fields
+(function() {
+  'use strict';
+  window.addEventListener('load', function() {
+    // Get the forms we want to add validation styles to
+    var forms = document.getElementsByClassName('needs-validation');
+    // Loop over them and prevent submission
+    var validation = Array.prototype.filter.call(forms, function(form) {
+      form.addEventListener('submit', function(event) {
+        if (form.checkValidity() === false) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  }, false);
+})();
+</script>
 {% endblock %}
