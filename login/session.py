@@ -45,7 +45,10 @@ class SessionHandler:
             sid: (str) Session id where the data should be stored on
         """
 
-        session = SessionModel.objects(sid=sid)[0]
+        session = SessionModel.objects(sid=sid)
+        if not session:
+            return
+        session = session[0]    
         session.session_data = data
         session.save()
 
@@ -54,10 +57,9 @@ class SessionHandler:
         sid, data = request.cookies.get(self.session_name), {}
 
         if sid:
-            data, sid = self._get_session(sid)
-            if sid:
-                data['_sid'] = sid
-        request[self.session_name] = data
+            data = self._get_session(sid)
+            data['_sid'] = sid
+        request[self.session_name] = data 
 
     async def save_sessions(self, request, response) -> None:
         """Store session information into the database"""
@@ -66,19 +68,28 @@ class SessionHandler:
 
         session_data = request[self.session_name]
 
+        # Don't create a session when you don't have anything to store
+        if len(session_data.keys()) == 0:
+            return
+        
         if '_sid' in session_data:
             sid = session_data['_sid']
             if len(session_data.keys()) == 1:
-                del session_data['_sid']
+                session_data.pop('_sid')
                 self._destroy_session(sid)
                 self._destroy_cookie(response)
                 return
+            if '_renew' in session_data:
+                session_data.pop('_renew')
+                self._destroy_session(sid)
+                sid = self._create_session(session_data)
             self._update_session(session_data, sid)
             self._create_cookie(response, sid)
             return
 
-        sid = self._create_session(session_data)
-        self._create_cookie(response, sid)
+        if len(session_data.keys()) > 0:
+            sid = self._create_session(session_data)
+            self._create_cookie(response, sid)
 
     def _create_session(self, data={}) -> str:
         """Create a new session and return a dict where new information could be stored in
@@ -95,11 +106,11 @@ class SessionHandler:
         session.save()
         return sid
 
-    def _destroy_session(self, sid: str) -> None:
+    def _destroy_session(self, sid: str) -> dict:
         """Delete session from the database"""
         SessionModel.objects(sid=sid).delete()
 
-    def _get_session(self, sid: str) -> (dict, str):
+    def _get_session(self, sid: str):
         """Try to open a session with the given id or create a new one
 
         Args:
@@ -112,8 +123,10 @@ class SessionHandler:
 
         model = SessionModel.objects(sid=sid)
         if not model:
-            return {}, None
-        return dict(model[0].session_data), sid
+            return {}
+        model = dict(model[0].session_data)
+        model.update({'_sid': sid})
+        return model
 
     def _calculate_expire(self) -> datetime:
         """Calculate expire date"""
@@ -125,11 +138,10 @@ class SessionHandler:
         response.cookies[self.session_name] = sid
         response.cookies[self.session_name]['expires'] = self._calculate_expire()
         response.cookies[self.session_name]['max-age'] = self.expiry
-
-        if self.domain:
-            response.cookies[self.session_name]['domain'] = self.domain
         response.cookies[self.session_name]['secure'] = self.secure
         response.cookies[self.session_name]['httponly'] = self.httponly
+        if self.domain:
+            response.cookies[self.session_name]['domain'] = self.domain
 
     def _destroy_cookie(self, response) -> None:
         """Destroy the session cookie"""

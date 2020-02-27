@@ -2,6 +2,7 @@
 """Process user accounts using sessions and mongoengine"""
 from sanic import response, Blueprint
 
+import datetime
 import session
 from util import *
 
@@ -37,7 +38,8 @@ async def profile(request):
 async def logout(request):
     """Log the user out when it's logged in"""
     if is_logged_in(request):
-        del request['session']['user_id']
+        request['session'].pop('user_id')
+        request['session']['_renew'] = True
     return response.redirect('login')
 
 
@@ -112,6 +114,7 @@ async def register_post(request):
     new_user.save()
 
     request['session']['user_id'] = new_user.id
+    request['session']['_renew'] = True
     return response.redirect('profile')
 
 
@@ -123,8 +126,8 @@ async def login_post(request):
     After that it will try to login the user, and give the user a session.
 
     Request args:
-        email: An email from an account that's registerd.
-        password: the password for the registerd account.
+        email: An email from an account that's registered.
+        password: the password for the registered account.
 
     Exceptions:
         - Account does not exist.
@@ -139,6 +142,7 @@ async def login_post(request):
     if not all(item in request.form for item in required):
         return await format_html('login.html', error_message='Please enter all fields')
 
+    # Receive values from form
     email = request.form.get('email')
     password = request.form.get('pwd')
     user = attempt_login(email, password)
@@ -147,6 +151,11 @@ async def login_post(request):
         return await format_html(
             'login.html', error_message='Password incorrect', email=email
         )
+        
+    # Update last login
+    user.last_login = datetime.datetime.utcnow()
+    user.save()
 
     request['session']['user_id'] = user.id
+    request['session']['_renew'] = True
     return response.redirect('profile')
