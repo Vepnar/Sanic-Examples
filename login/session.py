@@ -1,37 +1,25 @@
+# pylint: disable=E0401, W0614, W0401
+"""Handle sessions with mongoengine"""
 import time
 import uuid
-from mongoengine import *
 from datetime import datetime
-
-
-class SessionModel(Document):
-    """Store session information."""
-    sid = StringField(required=True, unique=True, max_length=32)
-    created = DateTimeField(default=datetime.utcnow)
-    session_data = DictField(default={})
-    meta = {
-        'indexes': [{'fields': ['created'], 'expireAfterSeconds': (7 * 24 * 60 * 60)}],
-    }
-
+from models import SessionModel
 
 class SessionHandler:
-    """Session middleware. 
+    """Session middleware.
 
     Handles everything from creating items in the database to settings cookies
-
-    Args:
     """
 
     def __init__(
-        self,
-        app,
-        alias: str = None,
-        expiry: int = 7 * 24 * 60 * 60,
-        session_name: str = 'session',
-        httponly: bool = True,
-        secure: bool = False,
-        domain: str = None,
-
+            self,
+            app,
+            alias: str = None,
+            expiry: int = 7 * 24 * 60 * 60,
+            session_name: str = 'session',
+            httponly: bool = True,
+            secure: bool = False,
+            domain: str = None,
 
     ):
         self.expiry = expiry
@@ -49,17 +37,17 @@ class SessionHandler:
         app.request_middleware.appendleft(self.open_sessions)
         app.response_middleware.append(self.save_sessions)
 
-    def _update_session(self,data: dict, sid: str):
+    def _update_session(self, data: dict, sid: str):
         """Update existing session and add new information
-        
+
         Args: 
             data: (dict) Infomation that should be stored in the database
             sid: (str) Session id where the data should be stored on
         """
 
-        session = SessionModel.objects(sid=sid)[0] 
+        session = SessionModel.objects(sid=sid)[0]
         session.session_data = data
-        session.save()      
+        session.save()
 
     async def open_sessions(self, request) -> None:
         """Receive session infomration or set new information"""
@@ -75,22 +63,19 @@ class SessionHandler:
         """Store session information into the database"""
         if self.session_name not in request:
             return
-            
+
         session_data = request[self.session_name]
 
         if '_sid' in session_data:
             sid = session_data['_sid']
             if len(session_data.keys()) == 1:
-                
                 del session_data['_sid']
                 self._destroy_session(sid)
                 self._destroy_cookie(response)
                 return
-            else:
-                del session_data['_sid']
-                self._update_session(session_data, sid)
-                self._create_cookie(response, sid)
-                return
+            self._update_session(session_data, sid)
+            self._create_cookie(response, sid)
+            return
 
         sid = self._create_session(session_data)
         self._create_cookie(response, sid)
@@ -107,17 +92,11 @@ class SessionHandler:
         sid = uuid.uuid4().hex
         session = SessionModel(sid=sid, session_data=data)
 
-        # Set meta informaton for example alias and expire date
-        # meta = {
-        #     'indexes': [{'fields': ['created'], 'expireAfterSeconds': 600}]
-        # }
-        # if not self.alias:
-        #     meta.update({'db_alias': self.alias})
-        # session.meta = meta
         session.save()
         return sid
 
     def _destroy_session(self, sid: str) -> None:
+        """Delete session from the database"""
         SessionModel.objects(sid=sid).delete()
 
     def _get_session(self, sid: str) -> (dict, str):
@@ -136,11 +115,13 @@ class SessionHandler:
             return {}, None
         return dict(model[0].session_data), sid
 
-    def _calculate_expire(self):
+    def _calculate_expire(self) -> datetime:
+        """Calculate expire date"""
         expire = time.time() + self.expiry
         return datetime.fromtimestamp(expire)
 
-    def _create_cookie(self, response, sid):
+    def _create_cookie(self, response, sid: str):
+        """Create cookie with the given sid"""
         response.cookies[self.session_name] = sid
         response.cookies[self.session_name]['expires'] = self._calculate_expire()
         response.cookies[self.session_name]['max-age'] = self.expiry

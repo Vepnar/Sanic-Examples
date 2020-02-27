@@ -5,17 +5,20 @@
             <h2>Example</h2>
             <div class="h-divider"></div>
             <p>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor
-                in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
+                dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
+                ex ea commodo consequat. Duis aute irure dolor
+                in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
+                cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
             </p>
         </div>
         <div class="p-3 mt-2 transparent-background rounded col-md-6">
             <h2>Login</h2>
             <div class="h-divider"></div>
-            <form action="/action_page.php" class="">
+            <form method="POST" class="needs-validation">
                 <div class="form-group">
                     <label for="uname">Email:</label>
-                    <input type="text" class="form-control" id="uname" name="uname" required>
+                    <input type="email" class="form-control" id="email" name="email" value="{{email}}" required>
                     <div class="invalid-feedback">Please fill out this field.</div>
                 </div>
                 <div class="form-group">
@@ -24,10 +27,30 @@
                     <div class="invalid-feedback">Please fill out this field.</div>
                 </div>
                 <button type="submit" class="btn btn-primary">Login</button>
+                {% if error_message %}
+                <strong class="text-danger">{{error_message}}</strong>
+                {% endif %}
             </form>
             <div class="h-divider mt-3"></div>
             <p>No account? press <a href="/users/register">here</a> to register</p>
         </div>
     </div>
 </div>
+<script>
+    (function () {
+        'use strict';
+        window.addEventListener('load', function () {
+            var forms = document.getElementsByClassName('needs-validation');
+            var validation = Array.prototype.filter.call(forms, function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (form.checkValidity() === false) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+</script>
 {% endblock %}
