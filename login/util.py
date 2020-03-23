@@ -60,7 +60,7 @@ def sanitize_html(html: str, sanitize_level=0) -> str:
         return html.replace('<', '&lt;').replace('>', '&gt;')
     if sanitize_level == 2: # Remove all dangerous injections 
         return SANITIZER.sanitize(html)
-    return html.translate(None, "<>") # Remove <>
+    return html.translate('<>') # Remove <>
 
 
 def is_valid_email(string):
@@ -84,7 +84,7 @@ def is_valid_password(password):
         return False
 
     # Check if there is any non letter
-    if not any(char.alpha() for char in password):
+    if not any(char.isalpha() for char in password):
         return False
 
     # Check if there is an uppercase character

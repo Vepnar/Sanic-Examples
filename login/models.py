@@ -2,9 +2,10 @@
 # pylint: disable=E0401, W0614, W0401, E0602, R0903
 import datetime
 import bcrypt
-from util import sanatize_html
+from util import sanitize_html
 from mongoengine import *
 
+from mongoengine import signals
 
 class UserModel(Document):
     """Store session information."""
@@ -17,7 +18,7 @@ class UserModel(Document):
     @classmethod
     def pre_save(cls, sender, document, **kwargs):
         """Hash the plain password"""
-        binary = document.password.encode('utf-8')
+        binary = document.password
         document.password = bcrypt.hashpw(binary, bcrypt.gensalt(12))
         document.email = sanitize_html(document.email)
 
@@ -72,3 +73,5 @@ class SessionModel(Document):
     meta = {
         'indexes': [{'fields': ['created'], 'expireAfterSeconds': (7 * 24 * 60 * 60)}],
     }
+
+signals.pre_save.connect(UserModel.pre_save, sender=UserModel)
