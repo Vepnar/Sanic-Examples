@@ -96,27 +96,22 @@ def is_valid_password(password):
         return False
     return True
 
-# def can_register_user(email: str, password: str, password2: str, accept: str) -> str:
-#     """Tries if the user can register on our website
+def can_register_user(email: str, password: str, password2: str, accept: str) -> str:
+    """Tries if the user can register on our website
 
-#     Exceptions:
-#     - passwords don't match
-#     - password doesn't fit the requirements
-#     - email already exists
-#     - TOS not accepted
+    Exceptions:
+    - passwords don't match
+    - password doesn't fit the requirements
+    - TOS not accepted
+    """
+    if password != password2:
+        return 'passwords do not match!'
 
-#     """
-#     if password != password2:
-#         return 'passwords do not match!'
+    if accept != 'on':
+        return 'Please accept our TOS'
+    if not is_valid_email(email):
+        return 'Please enter a valid Email address'
 
-#     if accept != 'on':
-#         return 'Please accept our TOS'
-#     if not is_valid_email(email):
-#         return 'Please enter a valid Email address'
-
-#     if not is_valid_password(password):
-#         return 'Your passwords needs to be longer than 6 characters and need at least one number and capital letter'
-
-#     if UserModel.objects(email=email):
-#         return 'This email is already registed'
-#     return None
+    if not is_valid_password(password):
+        return 'Your passwords needs to be longer than 6 characters and need at least one number and capital letter'
+    return None

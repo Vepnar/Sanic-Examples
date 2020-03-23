@@ -9,7 +9,7 @@ from util import *
 from models import UserModel
 
 BLUEPRINT = Blueprint('users', url_prefix='/users')
-REDIRECT_PAGE = ''
+REDIRECT_PAGE = 'profile'
 
 
 @BLUEPRINT.get('/register')
@@ -107,18 +107,21 @@ async def register_post(request):
     accept = request.form.get('accept')
 
     message = can_register_user(email, password, password2, accept)
+
+    if UserModel.objects(email=email):
+        message = None
+
     if message is not None:
         return await format_html(
             'register.html', error_message=message, email=email
         )
 
-    hashed_password = hash_password(password)
-    new_user = UserModel(email=email, password=hashed_password)
+    new_user = UserModel(email=email, password=password)
     new_user.save()
 
     request['session']['user_id'] = new_user.id
     request['session']['_renew'] = True
-    return response.redirect('profile')
+    return response.redirect(REDIRECT_PAGE)
 
 
 @BLUEPRINT.post('/login')

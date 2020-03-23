@@ -46,10 +46,6 @@ class UserModel(Document):
             return users # Return the given user when the passwords match
         return None # And return nothing when there is no matching user
 
-    @classmethod
-    def register(cls, email, password)
-
-
     def check_password(self, password):
         """Check if the password match with the password found in the database.
 
