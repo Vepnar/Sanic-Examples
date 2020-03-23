@@ -3,17 +3,20 @@
 from sanic import response, Blueprint
 
 import datetime
+
 import session
 from util import *
+from models import UserModel
 
 BLUEPRINT = Blueprint('users', url_prefix='/users')
+REDIRECT_PAGE = ''
 
 
 @BLUEPRINT.get('/register')
 async def register(request):
     """Show the register page when not logged in."""
     if is_logged_in(request):
-        return response.redirect('profile')
+        return response.redirect(REDIRECT_PAGE)
     return await format_html('register.html')
 
 
@@ -21,8 +24,8 @@ async def register(request):
 async def index(request):
     """Redirect based on the current state."""
     if is_logged_in(request):
-        return response.redirect('/users/profile')
-    return response.redirect('/users/login')
+        return response.redirect(REDIRECT_PAGE)
+    return response.redirect('login')
 
 
 @BLUEPRINT.get('/profile')
@@ -145,16 +148,12 @@ async def login_post(request):
     # Receive values from form
     email = request.form.get('email')
     password = request.form.get('pwd')
-    user = attempt_login(email, password)
+    user = UserModel.login(email, password)
 
     if not user:
         return await format_html(
             'login.html', error_message='Password incorrect', email=email
         )
-        
-    # Update last login
-    user.last_login = datetime.datetime.utcnow()
-    user.save()
 
     request['session']['user_id'] = user.id
     request['session']['_renew'] = True
