@@ -109,7 +109,7 @@ async def register_post(request):
     message = can_register_user(email, password, password2, accept)
 
     if UserModel.objects(email=email):
-        message = None
+        message = 'Error email is already registed'
 
     if message is not None:
         return await format_html(

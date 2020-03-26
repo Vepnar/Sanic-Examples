@@ -18,14 +18,14 @@ class UserModel(Document):
     @classmethod
     def pre_save(cls, sender, document, **kwargs):
         """Hash the plain password"""
-        binary = document.password
-        document.password = bcrypt.hashpw(binary, bcrypt.gensalt(12))
+        if isinstance(document.password, str):
+            binary = document.password.encode('utf-8')
+            document.password = bcrypt.hashpw(binary, bcrypt.gensalt(12))
         document.email = sanitize_html(document.email)
 
     @classmethod
     def login(cls, email, password):
         """Find a user matching the given E-Mail address and try to login.
-
         Args:
             email: an email address of an user who has an account on our service.
             password: the password the user has given.
