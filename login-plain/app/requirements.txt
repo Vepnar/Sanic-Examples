@@ -1,6 +1,5 @@
 
 bcrypt==3.1.7
 sanic==19.12.2
-sanic-auth==0.2.0 
 mongoengine==0.19.1
 

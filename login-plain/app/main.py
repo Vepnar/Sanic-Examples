@@ -17,7 +17,6 @@ async def init_webserver(*_):
     # Initialize middelware
     SessionHandler(WEBSERVER)
     Userhandler(WEBSERVER)
-    
     # Initialize all blueprints
     WEBSERVER.blueprint(users)
 
