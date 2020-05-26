@@ -9,7 +9,8 @@ services:
       - S_MONGO_URI=mongodb://mongo:27017
       - S_REQUEST_MAX_SIZE=1000000
       - S_DEBUG=True
-      - S_AUTH_LOGIN_ENDPOINT = '/user/login'
+      - S_AUTH_LOGIN_ENDPOINT=/user/login
+      - S_USER_ENDPOINT=/user/
     ports:
       - "8000:8000"
     image: python

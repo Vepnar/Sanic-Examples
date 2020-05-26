@@ -4,16 +4,9 @@ services:
     build:
       context: .
     depends_on:
-      - redis
       - mongo
-    environment:
-      - REDIS_HOST=redis
     ports:
       - "8000:8000"
-  redis:
-    image: python
-    volumes:
-      - redis_data:/data
   mongo:
     image: mongo
     environment:
