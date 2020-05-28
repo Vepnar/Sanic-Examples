@@ -4,6 +4,7 @@ import bcrypt
 from mongoengine import *
 from functools import wraps
 from datetime import datetime
+from inspect import isawaitable
 from sanic import Blueprint, response
 
 from util.user_util import password_check_weak
@@ -65,7 +66,7 @@ class UserModel(Document):
 
     @classmethod
     def get_by_id(cls, id):
-        user = cls.objects(id__exact=name)
+        user = cls.objects(id__exact=id)
         if user:
             return user[0]
         return None
@@ -90,7 +91,7 @@ class UserModel(Document):
             return True
         return False
 
-def login_required(func, denied_function=None):
+def login_required(function, denied_function=None):
     """Decorator to check if there is a logged in user.
 
     Args:
@@ -98,48 +99,63 @@ def login_required(func, denied_function=None):
 
     Usage:
         @login_required
-        async def example(request):
+        async def example(request, user):
             pass
     """
 
-    def wrapper(func):
-        @wraps(func)
-        async def wrapped(request, *args, **kwargs):
-            async def access_denied():
-                if denied_function:
-                    return await denied_function(request)
-                return response.redirect(APP.config.AUTH_LOGIN_ENDPOINT)
+    @wraps(function)
+    async def wrapper(request, *args, **kwargs):
+        async def access_denied():
+            if denied_function:
+                return await denied_function(request)
+            return response.redirect(APP.config.AUTH_LOGIN_ENDPOINT)
 
-            # Check if session exists.
-            session = request.get('session')
-            if not request.get('session'):
-                await access_denied()
+        # Check if session exists.
+        session = request.get('session')
+        if not request.get('session'):
+            return await access_denied()
 
-            # Get session and check if there is a user id.
-            user_id = session.get('user_id')
-            if not user_id:
-                await access_denied()
+        # Get session and check if there is a user id.
+        user_id = session.get('user_id')
+        if not user_id:
+            return await access_denied()
 
-            # Check if the id matches with an user in our database.
-            user = UserModel.get_by_id(user_id)
-            if not user:
-                await access_denied()
+        # Check if the id matches with an user in our database.
+        user = UserModel.get_by_id(user_id)
+        if not user:
+            return await access_denied()
 
-            request['user'] = user
-            func(request, *args, **kwargs)
-            
-        return wrapped
+        # Add user to the request
+        return await function(request, user, *args, **kwargs)
     return wrapper
+
+def login(request, user):
+    session = request.get('session')
+    if not request.get('session'):
+        return False
+
+    session['user_id'] = user.id
+    return True
+
+def logout(request):
+    session = request.get('session')
+    if not request.get('session'):
+        return
+    
+    if session.get('user_id'):
+        del session['user_id']
+
+    return response.redirect
 
 
 @BLUEPRINT.get('/login')
-async def login_get(request):
+async def _login_get(request):
     '''Return really simple login page in plain html'''
     return await response.file('./templates/user/login.html')
 
 
 @BLUEPRINT.post('/login')
-async def login_post(request):
+async def _login_post(request):
     username = request.form.get('username')
     password = request.form.get('password')
 
@@ -151,26 +167,27 @@ async def login_post(request):
     if user is None:
         return response.text('Invalid Username or Password')
 
-    #TODO LOGIN AUTH
+    login(request, user)
 
     return response.redirect(APP.config.USER_ENDPOINT)
 
 
 @BLUEPRINT.get('/register')
-async def register_get(request):
+async def _register_get(request):
     '''Return really simple register page in plain html'''
     return await response.file('./templates/user/register.html')
 
 
 @BLUEPRINT.route('/logout')
-@AUTH.login_required
-async def logout_route(request):
-    # TODO LOGOUT AUTH
-    return response.redirect(response.redirect(APP.config.AUTH_LOGIN_ENDPOINT))
+@login_required
+async def _logout_route(request, _):
+    logout(request)
+    print(APP.config.AUTH_LOGIN_ENDPOINT)
+    return response.redirect(APP.config.AUTH_LOGIN_ENDPOINT)
 
 
 @BLUEPRINT.post('/register')
-async def register_post(request):
+async def _register_post(request):
     username = request.form.get('username')
     password = request.form.get('password')
     password2 = request.form.get('password2')
@@ -189,6 +206,6 @@ async def register_post(request):
 
     user = UserModel.create_user(username, password)
 
-    # LOGIN AUTH
+    login(request, user)
 
     return response.redirect(APP.config.USER_ENDPOINT)
