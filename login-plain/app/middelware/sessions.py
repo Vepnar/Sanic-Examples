@@ -26,7 +26,7 @@ class SessionHandler:
             self,
             app,
             alias: str = None,
-            expiry: int = 7 * 24 * 60 * 60,
+            expiry: int = 8 * 60 * 60,
             session_name: str = 'session',
             httponly: bool = True,
             secure: bool = False,
@@ -64,7 +64,7 @@ class SessionHandler:
         session.save()
 
     async def open_sessions(self, request) -> None:
-        """Receive session infomration or set new information"""
+        """Receive session information or set new information"""
         sid, data = request.cookies.get(self.session_name), {}
 
         if sid:
