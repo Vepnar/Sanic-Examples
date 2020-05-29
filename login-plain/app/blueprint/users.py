@@ -24,18 +24,13 @@ def Userhandler(app):
     global APP
     APP = app
 
-
-class RoleUserModel(Document):
-    name = StringField(required=True, unique=True, max_length=32)
-
-
 class UserModel(Document):
     """Basic user database model with roles"""
     name = StringField(required=True, unique=True, max_length=32)
     password = BinaryField(required=True, max_length=60)
     created = DateTimeField(default=datetime.utcnow)
     last_login = DateTimeField(default=datetime.utcnow)
-    role = ListField(ReferenceField(RoleUserModel, reverse_delete_rule=PULL))
+    role = ListField(StringField())
 
     @classmethod
     def login(cls, username, password):
@@ -141,6 +136,26 @@ def login_required(function, denied_function=None):
         return await function(request, user, *args, **kwargs)
     return wrapper
 
+def required_role(function, roles, denied_function=None):
+    """Decorator to check if the user has the required roles
+
+    """
+    @wraps(function)
+    async def wrapper(request, user, *args, **kwargs):
+        async def access_denied():
+            if denied_function:
+                return await denied_function(request)
+            return response.redirect(APP.config.AUTH_LOGIN_ENDPOINT)
+
+        # Transform string into list
+        if isinstance(roles, str):
+            roles = [roles]
+
+        if not all(item in user.role for item in roles):
+            return await access_denied()
+
+        return await function(request, user, *args, **kwargs)
+    return wrapper
 
 def login_user(request, user):
     """Login an user with an user object"""
