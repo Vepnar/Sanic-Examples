@@ -1,11 +1,18 @@
 # pylint: disable=E0401, W0614, W0401, E0602, R0903
-"""Handle users information with mongodb"""
+"""Handle users information with mongodb
+
+This will be updated to an asynchronous alternative.
+"""
 import bcrypt
-from mongoengine import *
+import asyncio
+
+
 from functools import wraps
 from datetime import datetime
-from inspect import isawaitable
 from sanic import Blueprint, response
+from mongoengine import (
+    Document, StringField, BinaryField, DateTimeField, ListField, ReferenceField, PULL
+)
 
 from util.user_util import password_check_weak
 
@@ -17,13 +24,18 @@ def Userhandler(app):
     global APP
     APP = app
 
+
+class RoleUserModel(Document):
+    name = StringField(required=True, unique=True, max_length=32)
+
+
 class UserModel(Document):
     """Basic user database model with roles"""
     name = StringField(required=True, unique=True, max_length=32)
     password = BinaryField(required=True, max_length=60)
     created = DateTimeField(default=datetime.utcnow)
     last_login = DateTimeField(default=datetime.utcnow)
-    role = StringField(required=True, default='member')
+    role = ListField(ReferenceField(RoleUserModel, reverse_delete_rule=PULL))
 
     @classmethod
     def login(cls, username, password):
@@ -71,7 +83,6 @@ class UserModel(Document):
             return user[0]
         return None
 
-
     def check_password(self, password):
         """Check if the password match with the password found in the database.
 
@@ -90,6 +101,7 @@ class UserModel(Document):
         if bcrypt.checkpw(binary, self.password):
             return True
         return False
+
 
 def login_required(function, denied_function=None):
     """Decorator to check if there is a logged in user.
@@ -129,7 +141,9 @@ def login_required(function, denied_function=None):
         return await function(request, user, *args, **kwargs)
     return wrapper
 
-def login(request, user):
+
+def login_user(request, user):
+    """Login an user with an user object"""
     session = request.get('session')
     if not request.get('session'):
         return False
@@ -137,15 +151,39 @@ def login(request, user):
     session['user_id'] = user.id
     return True
 
-def logout(request):
+
+async def login(request, username, password):
+    """Login an user with an username and password"""
+    user = await UserModel.login(username, password)
+
+    if user is None:
+        return False
+
+    login_user(request, user)
+    return True
+
+
+async def logout(request):
+    """Delete the user from the session"""
     session = request.get('session')
     if not request.get('session'):
         return
-    
+
     if session.get('user_id'):
         del session['user_id']
 
     return response.redirect
+
+
+async def update_password(user, password, old_password=None):
+    if old_password:
+        if not user.check_password(old_password):
+            return False
+
+    password_bytes = password.encode('utf-8')
+    user.password = bcrypt.hashpw(password_bytes, bcrypt.gensalt(12))
+    user.save()
+    return True
 
 
 @BLUEPRINT.get('/login')
@@ -162,12 +200,8 @@ async def _login_post(request):
     if password is None or username is None:
         return response.text('password or username is missing.')
 
-    user = UserModel.login(username, password)
-
-    if user is None:
+    if not await login(request, username, password):
         return response.text('Invalid Username or Password')
-
-    login(request, user)
 
     return response.redirect(APP.config.USER_ENDPOINT)
 
@@ -182,7 +216,6 @@ async def _register_get(request):
 @login_required
 async def _logout_route(request, _):
     logout(request)
-    print(APP.config.AUTH_LOGIN_ENDPOINT)
     return response.redirect(APP.config.AUTH_LOGIN_ENDPOINT)
 
 
@@ -206,6 +239,6 @@ async def _register_post(request):
 
     user = UserModel.create_user(username, password)
 
-    login(request, user)
+    await login_user(request, user)
 
     return response.redirect(APP.config.USER_ENDPOINT)

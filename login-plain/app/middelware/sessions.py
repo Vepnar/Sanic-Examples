@@ -4,7 +4,9 @@ import time
 import uuid
 from datetime import datetime
 
-from mongoengine import StringField, DateTimeField, DictField, Document
+from mongoengine import (
+    StringField, DateTimeField, DictField, Document
+    )
 
 class SessionModel(Document):
     """Store session information."""
