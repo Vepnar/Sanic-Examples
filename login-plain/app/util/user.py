@@ -38,72 +38,10 @@ class UserModel(Document):
     last_login = DateTimeField(default=datetime.utcnow)
     role = ListField(StringField())
 
-
-def login_required(function, denied_function=None):
-    """Decorator to check if there is a logged in user.
-
-    Args:
-        denied_function: Function that should be called when there is no user.
-
-    Usage:
-        @login_required
-        async def example(request, user):
-            pass
-    """
-
-    @wraps(function)
-    async def wrapper(request, *args, **kwargs):
-        async def access_denied():
-            if denied_function:
-                return await denied_function(request)
-            return response.redirect(APP.config.AUTH_LOGIN_ENDPOINT)
-
-        # Check if session exists.
-        session = request.get('session')
-        if not request.get('session'):
-            return await access_denied()
-
-        # Get session and check if there is a user id.
-        user_id = session.get('user_id')
-        if not user_id:
-            return await access_denied()
-
-        # Check if the id matches with an user in our database.
-        user = UserModel.get_by_id(user_id)
-        if not user:
-            return await access_denied()
-
-        # Add user to the request
-        return await function(request, user, *args, **kwargs)
-    return wrapper
-
-
-def required_role(function, roles, denied_function=None):
-    """Decorator to check if the user has the required roles
-
-    """
-    @wraps(function)
-    async def wrapper(request, user, *args, **kwargs):
-        async def access_denied():
-            if denied_function:
-                return await denied_function(request)
-            return response.redirect(APP.config.AUTH_LOGIN_ENDPOINT)
-
-        # Transform string into list
-        if isinstance(roles, str):
-            roles = [roles]
-
-        if not all(item in user.role for item in roles):
-            return await access_denied()
-
-        return await function(request, user, *args, **kwargs)
-    return wrapper
-
-
 async def login(request, user):
     """Login an user with an user object"""
     session = request.get('session')
-    if not request.get('session'):
+    if request.get('session') is None:
         return False
 
     session['user_id'] = user.id
@@ -142,8 +80,9 @@ async def authenticate(request, username, password):
         This task is heavy on the cpu because it hashes the password with bcrypt.
     """
     users = UserModel.objects(name__exact=username)
-    if not users:  # Return no user when there is no matching E-Mail address
+    if not users:  # Return no user when there is no matching username address
         return
+    print("NOTHING FOUND")
 
     users = users[0]
     if await check_password(users, password):
@@ -213,8 +152,6 @@ async def create_user(username, password):
         User: when the username doesn't exist.
 
     """
-    if not await user_exists(username):
-        return None
 
     password = password.encode('utf-8')
     password = bcrypt.hashpw(password, bcrypt.gensalt(12))
@@ -300,7 +237,7 @@ def password_check_strong(password):
     return True
 
 
-def pass_extra_strong(password):
+def password_check_extra_strong(password):
     """Extra strong password checker.
     - Should contain everthing from before.
     - Should contain more than 5 unique characters
@@ -309,7 +246,7 @@ def pass_extra_strong(password):
 
     Returns true when the password is strong and false when it isn't
     """
-    if not pass_extra_strong(password):
+    if not password_check_strong(password):
         return False
 
     # Password needs to be longer than 11 characters.
@@ -334,3 +271,98 @@ def pass_extra_strong(password):
             return False
 
     return True
+
+def login_required(function, denied_function=None):
+    """Decorator to check if there is a logged in user.
+
+    Args:
+        denied_function: Function that should be called when there is no user.
+
+    Usage:
+        @login_required
+        async def example(request, user):
+            pass
+    """
+
+    @wraps(function)
+    async def wrapper(request, *args, **kwargs):
+        async def access_denied():
+            if denied_function:
+                return await denied_function(request)
+            return response.redirect(APP.config.AUTH_LOGIN_ENDPOINT)
+
+        # Check if session exists.
+        print(request.get('session'))
+        session = request.get('session')
+        if not request.get('session'):
+            return await access_denied()
+
+        
+
+        # Get session and check if there is a user id.
+        user_id = session.get('user_id')
+        if not user_id:
+            return await access_denied()
+
+        # Check if the id matches with an user in our database.
+        user = await  get_by_id(user_id)
+        if not user:
+            return await access_denied()
+
+        # Add user to the request
+        return await function(request, user, *args, **kwargs)
+    return wrapper
+
+def get_user(function):
+    """Decorator to add the user to the arguments of the called function
+
+    Usage:
+        @get_user
+        async def example(request, user):
+            pass
+    """
+
+    @wraps(function)
+    async def wrapper(request, *args, **kwargs):
+        async def call_function(user=None):
+            return await function(request, user, *args, **kwargs)
+
+        # Check if session exists.
+        session = request.get('session')
+        if not request.get('session'):
+            return await call_function()
+
+        # Get session and check if there is a user id.
+        user_id = session.get('user_id')
+        if not user_id:
+            return await call_function()
+
+        # Check if the id matches with an user in our database.
+        user = await get_by_id(user_id)
+        if not user:
+            return await call_function()
+
+        # Add user to the request
+        return await call_function(user=user)
+    return wrapper
+
+def required_role(function, roles, denied_function=None):
+    """Decorator to check if the user has the required roles
+
+    """
+    @wraps(function)
+    async def wrapper(request, user, *args, **kwargs):
+        async def access_denied():
+            if denied_function:
+                return await denied_function(request)
+            return response.redirect(APP.config.AUTH_LOGIN_ENDPOINT)
+
+        # Transform string into list
+        if isinstance(roles, str):
+            roles = [roles]
+
+        if not all(item in user.role for item in roles):
+            return await access_denied()
+
+        return await function(request, user, *args, **kwargs)
+    return wrapper
