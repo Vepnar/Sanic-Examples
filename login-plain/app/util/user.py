@@ -9,7 +9,7 @@ from mongoengine import (
 
 APP = None
 
-BADPASS = [
+BAD_PASSWORDS = [
     'pass',
     '123',
     'abc',
@@ -266,19 +266,39 @@ async def get_by_id(id):
 
 
 def password_check_weak(password):
+    """Weak password checker:
+
+    Only checks if the password is longer than 6 characters and doesn't container any spaces.
+
+    Returns true when the password is strong and false when it isn't
+
+    """
     return len(password) > 6 and not password.isspace()
 
 
 def password_check_middel(password):
+    """Middel password checker.
+    - Should contain everthing from before.
+    - Should also contain no atleast 1 capital letter and 1 lowercase letter.
+    - Should contain atleast 1 letter and 1 digit.
+
+    Returns true when the password is strong and false when it isn't
+    """
     if not password_check_weak(password):
         return False
 
-    if password.lower() == password or password.upper() == password:
+    if password.lower() == password or password.upper() == password or password.isalpha() or password.isdigit():
         return False
     return True
 
 
 def password_check_strong(password):
+    """Strong password checker.
+    - Should contain everthing from before.
+    - Should contain 1 non letter / digit.   
+
+    Returns true when the password is strong and false when it isn't
+    """
     if not password_check_middel(password):
         return False
 
@@ -288,15 +308,37 @@ def password_check_strong(password):
 
 
 def pass_extra_strong(password):
+    """Extra strong password checker.
+    - Should contain everthing from before.
+    - Should contain more than 5 unique characters
+    - Should contain more than 11 characters
+    - Shouldn't be on the password blacklist
+
+    Returns true when the password is strong and false when it isn't
+    """
     if not pass_extra_strong(password):
         return False
 
+    # Password needs to be longer than 11 characters.
     if len(password) < 11:
         return False
 
+    # Convert password to lowercase
     password = password.lower()
-    for badpass in BADPASS:
-        if badpass in password:
+
+
+    # Passwords must contain more than 5 unique characters.
+    unique = []
+    for char in password[::]:
+        if char not in unique:
+            unique.append(char)
+
+    if len(unique) < 5:
+        return False
+
+    # Password should not be blacklisted
+    for bad_pass in BAD_PASSWORDS:
+        if bad_pass in password:
             return False
 
     return True
