@@ -8,6 +8,8 @@ This will be updated to an asynchronous alternative.
 from datetime import datetime
 from sanic import Blueprint, response
 
+import util.user as u
+
 BLUEPRINT = Blueprint('user', url_prefix='user')
 
 
@@ -25,7 +27,7 @@ async def _login_post(request):
     if password is None or username is None:
         return response.text('password or username is missing.')
 
-    if not await login(request, username, password):
+    if not await u.login(request, username, password):
         return response.text('Invalid Username or Password')
 
     return response.redirect(APP.config.USER_ENDPOINT)
@@ -38,9 +40,9 @@ async def _register_get(request):
 
 
 @BLUEPRINT.route('/logout')
-@login_required
+@u.login_required
 async def _logout_route(request, _):
-    logout(request)
+    await u.logout(request)
     return response.redirect(APP.config.AUTH_LOGIN_ENDPOINT)
 
 
@@ -62,8 +64,8 @@ async def _register_post(request):
     if UserModel.user_exists(username):
         return response.text('Your username is taken')
 
-    user = UserModel.create_user(username, password)
+    user = await u.create_user(username, password)
 
-    await login_user(request, user)
+    await u.login_user(request, user)
 
     return response.redirect(APP.config.USER_ENDPOINT)

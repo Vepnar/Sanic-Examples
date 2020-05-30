@@ -1,7 +1,9 @@
 from sanic import Sanic
 from mongoengine import connect
 
-from blueprint.users import Userhandler, BLUEPRINT as users
+from util.user import initialize
+
+from blueprint.users import BLUEPRINT as users
 from middelware.sessions import SessionHandler
 
 
@@ -16,7 +18,7 @@ async def init_webserver(*_):
 
     # Initialize middelware
     SessionHandler(WEBSERVER)
-    Userhandler(WEBSERVER)
+    initialize(WEBSERVER)
     # Initialize all blueprints
     WEBSERVER.blueprint(users)
 

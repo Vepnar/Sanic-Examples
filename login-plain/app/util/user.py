@@ -1,3 +1,7 @@
+"""User handler with mongoengine
+
+TODO: replace mongoengine with something async
+"""
 import bcrypt
 
 from sanic import response
@@ -33,49 +37,6 @@ class UserModel(Document):
     created = DateTimeField(default=datetime.utcnow)
     last_login = DateTimeField(default=datetime.utcnow)
     role = ListField(StringField())
-
-    @classmethod
-    def login(cls, username, password):
-        """Find a user matching the given username and try to login.
-        Args:
-            username: an username of an user who has an account on our service.
-            password: the password the user has given.
-
-        Returns:
-            Returns user object when the user exists.
-            Or returns nothing when the user doesn't exist.
-
-        Note:
-            This task is heavy on the cpu because it hashes the password with bcrypt.
-        """
-        users = cls.objects(name__exact=username)
-        if not users:  # Return no user when there is no matching E-Mail address
-            return
-
-        users = users[0]
-        if users.check_password(password):
-            users.last_login = datetime.utcnow()
-            users.save()  # Update the last login of the user
-            return users  # Return the given user when the passwords match
-
-    def check_password(self, password):
-        """Check if the password match with the password found in the database.
-
-        Args:
-            password: (str) the string that need to be compared to the password in the database.
-
-        Returns: 
-            True: when the passwords match.
-            False: when they don't match.
-
-        Note:
-            This task is heavy on the cpu because it hashes the password with bcrypt.
-        """
-        binary = password.encode(
-            'utf-8')  # only binary values can be converted to hashes
-        if bcrypt.checkpw(binary, self.password):
-            return True
-        return False
 
 
 def login_required(function, denied_function=None):
@@ -139,7 +100,7 @@ def required_role(function, roles, denied_function=None):
     return wrapper
 
 
-def login_user(request, user):
+async def login(request, user):
     """Login an user with an user object"""
     session = request.get('session')
     if not request.get('session'):
@@ -148,16 +109,48 @@ def login_user(request, user):
     session['user_id'] = user.id
     return True
 
+async def check_password(user, password):
+    """Check if the password match with the password found in the database.
 
-async def login(request, username, password):
-    """Login an user with an username and password"""
-    user = await UserModel.login(username, password)
+    Args:
+        password: (str) the string that need to be compared to the password in the database.
 
-    if user is None:
-        return False
+    Returns: 
+        True: when the passwords match.
+        False: when they don't match.
 
-    login_user(request, user)
-    return True
+    Note:
+        This task is heavy on the cpu because it hashes the password with bcrypt.
+    """
+    binary = password.encode(
+        'utf-8')  # only binary values can be converted to hashes
+    if bcrypt.checkpw(binary, user.password):
+        return True
+    return False
+
+async def authenticate(request, username, password):
+    """Find a user matching the given username and try to login.
+    Args:
+        username: an username of an user who has an account on our service.
+        password: the password the user has given.
+
+    Returns:
+        Returns user object when the user exists.
+        Or returns nothing when the user doesn't exist.
+
+    Note:
+        This task is heavy on the cpu because it hashes the password with bcrypt.
+    """
+    users = UserModel.objects(name__exact=username)
+    if not users:  # Return no user when there is no matching E-Mail address
+        return
+
+    users = users[0]
+    if await check_password(users, password):
+        users.last_login = datetime.utcnow()
+        users.save()  # Update the last login of the user
+        await login(request, users)
+        return users  # Return the given user when the passwords match
 
 
 async def logout(request):
@@ -325,7 +318,6 @@ def pass_extra_strong(password):
 
     # Convert password to lowercase
     password = password.lower()
-
 
     # Passwords must contain more than 5 unique characters.
     unique = []
