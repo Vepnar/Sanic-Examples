@@ -11,6 +11,7 @@ services:
       - S_DEBUG=True
       - S_AUTH_LOGIN_ENDPOINT=/user/login
       - S_USER_ENDPOINT=/user/
+      - S_MONGO_DB_NAME=test
     ports:
       - "8000:8000"
     image: python
