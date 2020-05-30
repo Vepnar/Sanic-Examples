@@ -12,6 +12,13 @@ import util.user as u
 
 BLUEPRINT = Blueprint('user', url_prefix='user')
 
+@BLUEPRINT.get('/')
+@u.get_user
+async def index(request, user):
+    if user is not None:
+        return response.text(user.name)
+    return response.text(request.get('session'))
+
 
 @BLUEPRINT.get('/login')
 async def _login_get(request):
@@ -27,10 +34,10 @@ async def _login_post(request):
     if password is None or username is None:
         return response.text('password or username is missing.')
 
-    if not await u.login(request, username, password):
-        return response.text('Invalid Username or Password')
+    if not await u.authenticate(request, username, password):
+        return response.text('Invalid username or password')
 
-    return response.redirect(APP.config.USER_ENDPOINT)
+    return response.redirect('/user/')
 
 
 @BLUEPRINT.get('/register')
@@ -43,7 +50,7 @@ async def _register_get(request):
 @u.login_required
 async def _logout_route(request, _):
     await u.logout(request)
-    return response.redirect(APP.config.AUTH_LOGIN_ENDPOINT)
+    return response.redirect('/users/')
 
 
 @BLUEPRINT.post('/register')
@@ -58,14 +65,14 @@ async def _register_post(request):
     if not password == password2:
         return response.text('passwords don\'t match.')
 
-    if not password_check_weak(password):
+    if not u.password_check_weak(password):
         return response.text('Your password is too weak.')
 
-    if UserModel.user_exists(username):
+    if await u.user_exists(username):
         return response.text('Your username is taken')
 
     user = await u.create_user(username, password)
 
-    await u.login_user(request, user)
+    await u.login(request, user)
 
-    return response.redirect(APP.config.USER_ENDPOINT)
+    return response.redirect('/user/')
