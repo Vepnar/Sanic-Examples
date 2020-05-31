@@ -8,7 +8,7 @@ This will be updated to an asynchronous alternative.
 from datetime import datetime
 from sanic import Blueprint, response
 
-import util.user as u
+import sanic_authenticate as u
 
 BLUEPRINT = Blueprint('user', url_prefix='user')
 

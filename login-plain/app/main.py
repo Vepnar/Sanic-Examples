@@ -4,7 +4,9 @@ from mongoengine import connect
 from util.user import initialize
 
 from blueprint.users import BLUEPRINT as users
-from middelware.sessions import SessionHandler
+
+from sanic_sessions import SessionHandler
+from sanic_authenticate import initialize
 
 
 WEBSERVER = Sanic(__name__,  load_env='S_')
