@@ -1,6 +1,6 @@
 
 bcrypt==3.1.7
-sanic==19.12.2
+sanic==20.12.7
 mongoengine==0.19.1
 sanic-sessions @ https://github.com/Vepnar/Sanic-Sessions/archive/master.zip
 sanic-authenticate @ https://github.com/Vepnar/Sanic-Authenticate/archive/master.zip
